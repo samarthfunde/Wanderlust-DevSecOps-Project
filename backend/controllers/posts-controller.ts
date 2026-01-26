@@ -47,12 +47,14 @@ export const createPostHandler = async (req: Request, res: Response) => {
       authorId: req.user._id,
     });
 
-    const [savedPost] = await Promise.all([
-      post.save(), // Save the post
-      deleteDataFromCache(REDIS_KEYS.ALL_POSTS), // Invalidate cache for all posts
-      deleteDataFromCache(REDIS_KEYS.FEATURED_POSTS), // Invalidate cache for featured posts
-      deleteDataFromCache(REDIS_KEYS.LATEST_POSTS), // Invalidate cache for latest posts
-    ]);
+    await Promise.all([
+  deleteDataFromCache(REDIS_KEYS.ALL_POSTS),
+  deleteDataFromCache(REDIS_KEYS.FEATURED_POSTS),
+  deleteDataFromCache(REDIS_KEYS.LATEST_POSTS),
+]);
+
+return res.status(HTTP_STATUS.OK).json(updatedPost);
+
 
     // updating user doc to include the ObjectId of the created post
     await User.findByIdAndUpdate(userId, { $push: { posts: savedPost._id } });
@@ -136,10 +138,12 @@ export const updatePostHandler = async (req: Request, res: Response) => {
       return res.status(HTTP_STATUS.NOT_FOUND).json({ message: RESPONSE_MESSAGES.POSTS.NOT_FOUND });
     }
     // invalidate the redis cache
-    await deleteDataFromCache(REDIS_KEYS.ALL_POSTS),
-      await deleteDataFromCache(REDIS_KEYS.FEATURED_POSTS),
-      await deleteDataFromCache(REDIS_KEYS.LATEST_POSTS),
-      await res.status(HTTP_STATUS.OK).json(updatedPost);
+   // invalidate the redis cache
+    await deleteDataFromCache(REDIS_KEYS.ALL_POSTS);
+    await deleteDataFromCache(REDIS_KEYS.FEATURED_POSTS);
+     await deleteDataFromCache(REDIS_KEYS.LATEST_POSTS);
+     await res.status(HTTP_STATUS.OK).json(updatedPost);
+return res.status(HTTP_STATUS.OK).json(updatedPost);
   } catch (err: any) {
     res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ message: err.message });
   }
@@ -156,10 +160,15 @@ export const deletePostByIdHandler = async (req: Request, res: Response) => {
     await User.findByIdAndUpdate(post.authorId, { $pull: { posts: req.params.id } });
 
     // invalidate the redis cache
-    await deleteDataFromCache(REDIS_KEYS.ALL_POSTS),
-      await deleteDataFromCache(REDIS_KEYS.FEATURED_POSTS),
-      await deleteDataFromCache(REDIS_KEYS.LATEST_POSTS),
-      res.status(HTTP_STATUS.OK).json({ message: RESPONSE_MESSAGES.POSTS.DELETED });
+    // invalidate the redis cache
+await deleteDataFromCache(REDIS_KEYS.ALL_POSTS);
+await deleteDataFromCache(REDIS_KEYS.FEATURED_POSTS);
+await deleteDataFromCache(REDIS_KEYS.LATEST_POSTS);
+
+return res
+  .status(HTTP_STATUS.OK)
+  .json({ message: RESPONSE_MESSAGES.POSTS.DELETED });
+
   } catch (err: any) {
     res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ message: err.message });
   }
